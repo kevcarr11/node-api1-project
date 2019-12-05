@@ -6,25 +6,29 @@ const server = express()
 
 server.use(express.json())
 
-server.get("/users", (req, res) => {
-  if (db) {
-    res.json(db)
-  } else {
+server.get("/api/users", (req, res) => {
+  db.find()
+  .then((response) => {
+    res.json(response)
+  })
+  .catch((err) =>  {
     res.status(500).json({ errorMessage: "The users information could not be retrieved." })
-  }
+  })
+  
 })
 
-server.get("/users/:id", (req, res) => {
-  const user = db.findById(req.params.id)
+server.get("/api/users/:id", (req, res) => {
+  db.findById(req.params.id)
+  .then((response) => {
+        res.json(response)
+  })
+  .catch(() => {
+      res.status(404).json({ message: "The user with the specified ID does not exist." })    
+  })
 
-  if (user) {
-    res.json(user)
-  } else {
-    res.status(404).json({ message: "The user with the specified ID does not exist." })
-  }
 })
 
-server.post("/users", (req, res) => {
+server.post("/api/users", (req, res) => {
   if (!req.body.name || !req.body.bio) {
     return res.status(400).json({ errorMessage: "Please provide name and bio for the user." })
   }
@@ -39,7 +43,7 @@ server.post("/users", (req, res) => {
   res.status(201).json(newUser)
 })
 
-server.delete("/users/:id", (req, res) => {
+server.delete("/api/users/:id", (req, res) => {
   const user = db.findById(req.params.id)
   
   if (user) {
@@ -52,7 +56,7 @@ server.delete("/users/:id", (req, res) => {
   }
 })
 
-server.put("/users/:id", (req, res) => {
+server.put("/api/users/:id", (req, res) => {
   const user = db.findById(req.params.id)
 
   const updatedUser = {
@@ -72,7 +76,7 @@ server.put("/users/:id", (req, res) => {
   }
 })
 
-const port = 8080
+const port = 3000
 const host = "127.0.0.1"
 
 server.listen(port, host, () => {
