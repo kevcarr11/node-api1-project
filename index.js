@@ -8,72 +8,103 @@ server.use(express.json())
 
 server.get("/api/users", (req, res) => {
   db.find()
-  .then((response) => {
-    res.json(response)
-  })
-  .catch((err) =>  {
-    res.status(500).json({ errorMessage: "The users information could not be retrieved." })
-  })
-  
+    .then((response) => {
+      res.json(response)
+    })
+    .catch((err) => {
+      res.status(500).json({ errorMessage: "The users information could not be retrieved." })
+    })
+
 })
 
 server.get("/api/users/:id", (req, res) => {
   db.findById(req.params.id)
-  .then((response) => {
+    .then((response) => {
+      if (response) {
         res.json(response)
-  })
-  .catch(() => {
-      res.status(404).json({ message: "The user with the specified ID does not exist." })    
-  })
-
+      } else {
+        res.status(404).json({ message: "The user with the specified ID does not exist." })
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({ error: "The user information could not be retrieved" })
+    })
 })
 
 server.post("/api/users", (req, res) => {
-  if (!req.body.name || !req.body.bio) {
+  const { name, bio } = req.body
+  if (!name || !bio) {
     return res.status(400).json({ errorMessage: "Please provide name and bio for the user." })
   }
 
-  const newUser = {
-    id: String(db.length + 1),
-    name: req.body.name,
-    bio: req.body.bio,
-  }
-
-  db.insert(newUser)
-  res.status(201).json(newUser)
+  db.insert({ name, bio })
+    .then(response => {
+      res.status(201).json(response)
+    })
+    .catch(() => {
+      res.status(500).json({ errorMessage: "There was an error while saving the user to the database" })
+    })
 })
 
-server.delete("/api/users/:id", (req, res) => {
-  const user = db.findById(req.params.id)
-  
-  if (user) {
-    db.remove(req.params.id)
-    res.json(user)
-  } if (!user) {
-    res.status(404).json({ message: "The user with the specified ID does not exist." })
-  } else {
+server.delete("/api/users/:id", async (req, res) => {
+  // db.findById(req.params.id)
+  //   .then(response => {
+  //     db.remove(response.id)
+  //       .then((response) => {
+  //         res.json(response)
+  //       })
+  //       .catch(() => {
+  //         res.status(500).json({ errorMessage: "The user could not be removed" })
+  //       })
+  //   })
+  //   .catch(() => {
+  //     res.status(404).json({ message: "The user with the specified ID does not exist." })
+  //   })
+  try {
+    const user = await db.find(req.params.id)
+    if (!user) {
+      return res.status(404).json({ errorMessage: "The user with the specified ID does not exist." })
+    } else {
+      await db.remove(req.params.id)
+      res.json(user)
+    }
+  } catch (err)  {
     res.status(500).json({ errorMessage: "The user could not be removed" })
   }
 })
 
-server.put("/api/users/:id", (req, res) => {
-  const user = db.findById(req.params.id)
-
-  const updatedUser = {
-    name: req.body.name,
-    bio: req.body.bio,
+server.put("/api/users/:id", async (req, res) => {
+  const { name, bio } = req.body
+  if (!name || !bio) {
+    return res.status(400).json({ errorMessage: "Please provide name and bio for the user." })
   }
 
-  if (!user) {
-    res.status(404).json({ message: "The user with the specified ID does not exist." })
-  } if (!req.body.name || !req.body.bio) {
-     res.status(400).json({ errorMessage: "Please provide name and bio for the user." })
-  } if (user && req.body.name && req.body.bio) {
-    db.update(req.body.id, updatedUser)
-    res.status(200).json(updatedUser)
-  } else {
-    res.status(500).json({ errorMessage: "The user information could not be modified." })
+  // db.findById(req.params.id)
+  //   .then(user => {
+  //     if (user) {
+  //       return db.update(req.params.id, { name, bio })
+  //     } else {
+  //       res.status(404).json({ errorMessage: "The user with the specified ID does not exist." })
+  //     }
+  //   })
+  //   .then(() => db.findById(req.params.id))
+  //   .then(response => res.json(response))
+  //   .catch(() => {
+  //     res.status(500).json({ message: "The user information could not be modified." })
+  //   })
+    
+  try {
+    const user = await db.findById(req.params.id)
+    if (!user) {
+      return res.status(404).json({ errorMessage: "The user with the specified ID does not exist." })
+    } else {
+      await db.update(req.params.id, { name, bio })
+      res.json(await db.findById(req.params.id))
+    }
+  } catch (err) {
+    res.status(500).json({ message: "The user information could not be modified." })
   }
+
 })
 
 const port = 3000
